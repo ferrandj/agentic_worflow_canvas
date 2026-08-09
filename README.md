@@ -1,97 +1,76 @@
 # Agent Flow Canvas
 
-An infinite-canvas diagramming tool purpose-built for sketching AI-agent workflows —
-the kind of diagram that shows a human handing a ticket to an orchestrator, which
-fans out to subagents, which push into a CI platform, which comes back to a human
-reviewer.
+A fast, beautiful, local-first canvas for sketching **AI-agent workflows** — the
+kind of diagram that shows a human handing a ticket to an orchestrator, which fans
+out to subagents, which push into a CI platform, which comes back to a human
+reviewer. Dark and light themes, smooth infinite canvas with the classic dotted
+background, and first-class Mermaid import/export.
 
-It has a fixed vocabulary of block types instead of freeform shapes:
+Built for **humans and agents alike**: everything the UI does is also available
+through a local REST API — see [AGENTS.md](AGENTS.md).
 
-| Type | Meaning | Can contain children? |
-|---|---|---|
-| **Person** | a human in the loop | No |
-| **Agent** | an AI agent / subagent | No |
-| **Code** | a script, service, pipeline step | No |
-| **Group** | pure visual grouping, no semantics | Yes — anything |
-| **Platform** | a tool/runtime agents & code run inside | Yes — agents and code only, never people |
+## Features
 
-Groups and Platforms only exist as containers: drop a second block onto one and it
-becomes a container; drop it back down to 0–1 children and it dissolves (Platforms
-are exempt — an empty/single-member platform still persists as a labeled card).
+- **Five block types**: Person (amber), Agent (indigo), Code (teal), Group (slate),
+  Platform (red, with a searchable tool-logo picker over Simple Icons).
+- **Groups that just work**: drop one block onto another and they become a group.
+  A group's size is always derived from its members — it hugs them automatically
+  and can't get out of sync. Remove a member with right-click → *Remove from
+  group*; dissolve a whole container with *Degroup*. Groups auto-dissolve when
+  down to one member. Platforms behave identically, plus one rule: **they can
+  never contain Person blocks** (agents and code only).
+- **Folder-based storage**: pick a folder; every canvas is a plain JSON file in
+  it. The foldable left sidebar lists, creates, renames and deletes canvases.
+  Autosaves as you edit.
+- **Mermaid both ways**: export any canvas as a `flowchart LR` (with containers
+  as subgraphs and *real names* as node ids), and import that same dialect back —
+  positions are computed automatically with a layered auto-layout.
+- **Dark + light themes**, minimap, smooth pan/zoom, context menus, an inspector
+  panel for labels/notes/types/logos.
 
-## Using it as a Claude artifact
-
-`src/AgentFlowCanvas.jsx` is a single, self-contained React component (default
-export, no relative imports, no npm packages beyond React, Tailwind utility classes
-only). Copy its contents directly into a Claude artifact — it should run unmodified.
-
-## Running locally
+## Quick start
 
 ```bash
 npm install
-npm run dev
+npm run dev        # API server on :4001 + web UI on http://localhost:5173
 ```
 
-This spins up a minimal Vite harness (`index.html` + `src/main.jsx`) purely so the
-component can be clicked through in a real browser during development. Tailwind is
-loaded via the CDN `<script>` tag in `index.html` (matching how the artifact sandbox
-provides it) rather than installed as a build dependency, so styling behaves
-identically in both environments.
+Open the app, set your canvas folder in the sidebar (e.g. `~/canvases`), create a
+canvas, and start sketching:
 
-`npm run build` performs a production build, useful mainly as a fast way to catch
-syntax errors — there's no deployment target implied by this repo.
+- **Add blocks** from the top toolbar or by right-clicking the canvas.
+- **Connect** by dragging from a block's right handle to another block.
+- **Group** by dragging one block onto another.
+- **Right-click** anything for context actions.
 
-## Data model
+For production use:
 
-Everything (leaf blocks and containers) lives in one flat map, keyed by id:
-
-```js
-items = {
-  [id]: {
-    id, type,      // "human" | "agent" | "code" | "group" | "platform"
-    label, note,
-    logo,           // Simple Icons slug, platform-only
-    x, y,            // absolute world coordinates (leaves only)
-    parent,           // id of containing group/platform, or null
-    pad,               // {l,t,r,b} padding around children
-    collapsed,          // bool — is this container's content hidden?
-  }
-}
-edges = [{ id, from, to, label }]
+```bash
+npm run build
+npm start          # one process serves UI + API on http://127.0.0.1:4001
 ```
 
-Containers store no size or position — a container's rectangle is derived every
-render from the bounding box of its children plus `pad`. Leaf `x`/`y` are absolute
-world coordinates, not parent-relative, which is what lets a block move into or out
-of a group as a pure data change (`parent` field) rather than a geometry change.
+## Tests
 
-## Interactions
+```bash
+npm test           # 70+ unit & API tests (Vitest + supertest)
+npm run test:e2e   # browser end-to-end tests (Playwright)
+```
 
-- **Move tool:** drag a block. Drop onto another leaf → both become a new Group.
-  Drop onto an existing Group/Platform → it joins. Drag a block far enough past its
-  container's edge and it detaches.
-- **Connect tool:** tap a block, then tap the target block, to draw an arrow (or
-  drag from the port on a block's right edge).
-- **Select tool:** tap blocks to toggle them in/out of a multi-selection; drag on
-  empty canvas draws a marquee.
-- Multi-select + the Group button (or Ctrl/Cmd+G) groups an arbitrary selection.
-- A selected container shows 8 resize handles that stretch its padding.
-- The eye icon on a container's tab collapses it into a translucent card; arrows
-  pointing at now-hidden content re-target the collapsed card automatically.
-- Pan: drag empty canvas. Zoom: Ctrl/Cmd+wheel, trackpad pinch, or touch pinch.
+## How it's put together
 
-## Persistence, export, import
-
-- Auto-saves on a 700ms debounce — to the artifact's `window.storage` when running
-  as an artifact, falling back to `localStorage` (and then an in-memory store) when
-  running standalone.
-- **Export** writes `agent-flow.json`: `{ version, items, edges }`.
-- **Import** reads that shape back, or a legacy `{nodes, edges, groups}` shape.
-- **Copy as Mermaid** serializes the board to a `flowchart LR` Mermaid diagram
-  (containers become `subgraph`s) for pasting into a Markdown doc or PR description.
-  This is one-way — Mermaid text can't be re-imported.
+- **React + Vite + [React Flow](https://reactflow.dev)** for the canvas,
+  **Tailwind v4** for styling, **Zustand** for state.
+- A small **Express** server owns the canvas folder: validated, atomic,
+  path-traversal-safe JSON file storage plus Mermaid import/export endpoints.
+- All domain logic (grouping rules, derived container geometry, the Mermaid
+  serializer/parser, auto-layout) lives in `shared/` as pure, unit-tested
+  TypeScript used by both the client and the server.
+- Key design decision: containers store **no size or position** — their rectangle
+  is derived every render from their children. Coordinates are always absolute,
+  so re-parenting a block is a pure data change and the UI can never drift.
 
 ## Non-goals
 
-Not a general diagramming tool, not real-time collaborative, not a workflow
-*execution* engine — it only draws the shape of a workflow, it doesn't run one.
+Not a general-purpose whiteboard, not real-time collaborative, not a workflow
+*execution* engine — it draws the shape of a workflow; it doesn't run one.
