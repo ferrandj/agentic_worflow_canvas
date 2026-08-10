@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveRects, LEAF_W, LEAF_H, PAD, EMPTY_CONTAINER_W } from "./geometry.js";
+import { deriveRects, effectivePad, LEAF_W, LEAF_H, NOTE_W, NOTE_H, PAD, MIN_PAD, EMPTY_CONTAINER_W } from "./geometry.js";
 import { makeNode, makeDoc } from "./testUtils.js";
 
 describe("deriveRects", () => {
@@ -58,5 +58,46 @@ describe("deriveRects", () => {
     const rects = deriveRects(makeDoc([g1, g2]));
     expect(rects.get("g1")).toBeDefined();
     expect(rects.get("g2")).toBeDefined();
+  });
+
+  it("sizes notes distinctly from other leaves", () => {
+    const n = makeNode({ id: "n", type: "note", x: 10, y: 20 });
+    const rects = deriveRects(makeDoc([n]));
+    expect(rects.get("n")).toEqual({ x: 10, y: 20, w: NOTE_W, h: NOTE_H });
+  });
+
+  it("honors a manually stretched pad (free resize, issue #4) on each side independently", () => {
+    const g = makeNode({ id: "g", type: "group", pad: { l: 80, t: 90, r: 100, b: 60 } });
+    const a = makeNode({ id: "a", type: "agent", parent: "g", x: 100, y: 100 });
+    const b = makeNode({ id: "b", type: "agent", parent: "g", x: 400, y: 300 });
+    const r = deriveRects(makeDoc([g, a, b])).get("g")!;
+    expect(r.x).toBe(100 - 80);
+    expect(r.y).toBe(100 - 90);
+    expect(r.w).toBe(400 + LEAF_W - 100 + 80 + 100);
+    expect(r.h).toBe(300 + LEAF_H - 100 + 90 + 60);
+  });
+
+  it("never shrinks a stretched pad below the auto-hugged minimum as members move apart", () => {
+    // Stretch pad, then grow the bounding box past what the pad alone would give —
+    // the frame must always be at least the members' bbox + pad, never less.
+    const g = makeNode({ id: "g", type: "group", pad: { l: 8, t: 8, r: 8, b: 8 } });
+    const a = makeNode({ id: "a", type: "agent", parent: "g", x: 0, y: 0 });
+    const b = makeNode({ id: "b", type: "agent", parent: "g", x: 2000, y: 0 });
+    const r = deriveRects(makeDoc([g, a, b])).get("g")!;
+    expect(r.w).toBeGreaterThanOrEqual(2000 + LEAF_W);
+  });
+
+  it("clamps a corrupt/negative stored pad to the minimum", () => {
+    const node = makeNode({ id: "g", type: "group", pad: { l: -50, t: 0, r: 5, b: 1000 } });
+    const pad = effectivePad(node);
+    expect(pad.l).toBe(MIN_PAD);
+    expect(pad.t).toBe(MIN_PAD);
+    expect(pad.r).toBe(MIN_PAD);
+    expect(pad.b).toBe(1000);
+  });
+
+  it("falls back to the default pad when nothing has been stretched", () => {
+    const node = makeNode({ id: "g", type: "group" });
+    expect(effectivePad(node)).toEqual(PAD);
   });
 });

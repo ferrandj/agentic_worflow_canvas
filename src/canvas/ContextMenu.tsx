@@ -65,4 +65,5 @@ export const ADD_TYPES: { type: NodeType; label: string }[] = [
   { type: "agent", label: "Add Agent" },
   { type: "code", label: "Add Code" },
   { type: "platform", label: "Add Platform" },
+  { type: "note", label: "Add Note" },
 ];

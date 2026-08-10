@@ -51,25 +51,33 @@ export function Inspector() {
             </span>
           </div>
 
-          <label className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">
-            Label
-          </label>
-          <input
-            data-testid="inspector-label"
-            value={node.label}
-            onChange={(e) => updateNode(node.id, { label: e.target.value })}
-            className="mb-2.5 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm font-medium dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-          />
+          {node.type === "note" ? (
+            <p className="mb-2.5 text-xs text-slate-500 dark:text-slate-400">
+              Edit the note's text directly on its card.
+            </p>
+          ) : (
+            <>
+              <label className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                Label
+              </label>
+              <input
+                data-testid="inspector-label"
+                value={node.label}
+                onChange={(e) => updateNode(node.id, { label: e.target.value })}
+                className="mb-2.5 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm font-medium dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              />
 
-          <label className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">
-            Note
-          </label>
-          <textarea
-            value={node.note}
-            onChange={(e) => updateNode(node.id, { note: e.target.value })}
-            rows={2}
-            className="mb-2.5 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-          />
+              <label className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                Note
+              </label>
+              <textarea
+                value={node.note}
+                onChange={(e) => updateNode(node.id, { note: e.target.value })}
+                rows={2}
+                className="mb-2.5 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              />
+            </>
+          )}
 
           {LEAF_TYPES.includes(node.type) && (
             <>

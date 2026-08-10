@@ -20,12 +20,14 @@ import { useCanvasStore } from "../state/store";
 import { toFlow } from "../state/flowAdapter";
 import { LeafNode } from "./nodes/LeafNode";
 import { ContainerNode } from "./nodes/ContainerNode";
+import { NoteNode } from "./nodes/NoteNode";
 import { TYPE_STYLES } from "./nodes/typeStyles";
 import { LabeledEdge } from "./edges/LabeledEdge";
 import { ContextMenu, ADD_TYPES, type MenuState } from "./ContextMenu";
+import { ResizeHandles } from "./ResizeHandles";
 import type { Theme } from "../lib/theme";
 
-const nodeTypes = { leaf: LeafNode, container: ContainerNode };
+const nodeTypes = { leaf: LeafNode, container: ContainerNode, note: NoteNode };
 const edgeTypes = { labeled: LabeledEdge };
 
 export function FlowCanvas({ theme }: { theme: Theme }) {
@@ -214,10 +216,8 @@ export function FlowCanvas({ theme }: { theme: Theme }) {
     return data.node ? TYPE_STYLES[data.node.type].minimap : "#94a3b8";
   }, []);
 
-  void rects;
-
   return (
-    <div className="h-full w-full" data-testid="flow-canvas">
+    <div className="relative h-full w-full" data-testid="flow-canvas">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -253,6 +253,7 @@ export function FlowCanvas({ theme }: { theme: Theme }) {
           zoomable
         />
       </ReactFlow>
+      {doc && <ResizeHandles doc={doc} selection={selection} rects={rects} />}
       <ContextMenu menu={menu} onClose={closeMenu} />
     </div>
   );

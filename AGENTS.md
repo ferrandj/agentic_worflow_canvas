@@ -97,15 +97,21 @@ per-canvas; last write wins. Check `meta.updatedAt` if you need to detect races.
   "nodes": [
     {
       "id": "n_abc123",       // internal id — stable, never appears in Mermaid
-      "type": "person",        // person | agent | code | group | platform
+      "type": "person",        // person | agent | code | group | platform | note
       "label": "Product Owner",
       "note": "",
       "logo": null,             // Simple Icons slug (platforms only), e.g. "github"
       "parent": null,            // id of enclosing group/platform, or null
-      "x": 120, "y": 340         // ABSOLUTE canvas coordinates
+      "x": 120, "y": 340,        // ABSOLUTE canvas coordinates
+      "pad": null                // group/platform only — see "Free resize" below
     }
   ],
-  "edges": [{ "id": "e_x", "from": "n_abc123", "to": "n_def456", "label": "ticket" }]
+  "edges": [
+    {
+      "id": "e_x", "from": "n_abc123", "to": "n_def456", "label": "ticket",
+      "labelOffset": null       // optional {x,y} drag offset from the default label spot
+    }
+  ]
 }
 ```
 
@@ -115,11 +121,24 @@ Invariants (the server rejects violations with 422):
 - **A `person` may never be inside a `platform`**, directly or transitively.
 - Edge endpoints must exist; node ids must be unique.
 - Coordinates are always absolute (never parent-relative). Containers have **no
-  stored size** — their rectangle is derived from their children plus padding, so
-  you never need to size a group when editing JSON.
+  required stored size** — their rectangle is derived from their children plus
+  padding, so you never need to size a group when editing JSON.
 - Groups auto-dissolve when left with 0 or 1 members on the next UI mutation;
   platforms persist even when empty.
-- Leaf blocks render at a fixed 176×76; an empty platform at 220×110.
+- Leaf blocks render at a fixed 176×76; notes at 208×152; an empty platform at 220×110.
+
+**Free resize (`pad`):** a group/platform's frame is always at least the bounding
+box of its members plus padding (default `{l:28,t:44,r:28,b:28}`), so it can never
+clip a member — but the padding on each side can also be stretched larger (via the
+UI's resize handles, or by setting `pad` directly in JSON) to add breathing room.
+`pad: null`/absent means "use the default"; a stored `pad` is clamped to a minimum
+of 8px per side and otherwise always respected as a floor on top of the derived
+minimum.
+
+**Notes (`type: "note"`):** a free-floating sticky annotation with no workflow
+semantics — no ports, no containment rules, and it is **left out of Mermaid
+export entirely** (along with any edge that would touch one, though the UI never
+creates such edges). Its text lives in `label`.
 
 ## Mermaid dialect
 

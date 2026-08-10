@@ -13,6 +13,10 @@ export interface ContainerNodeData extends Record<string, unknown> {
   childCount: number;
 }
 
+export interface LabeledEdgeData extends Record<string, unknown> {
+  labelOffset: { x: number; y: number } | null;
+}
+
 /**
  * Derive React Flow state from the canonical doc.
  *
@@ -50,7 +54,7 @@ export function toFlow(
     }
     return {
       id: node.id,
-      type: "leaf",
+      type: node.type === "note" ? "note" : "leaf",
       position: { x: rect.x, y: rect.y },
       data: { node } satisfies LeafNodeData,
       selected: selection.has(node.id),
@@ -64,6 +68,7 @@ export function toFlow(
     target: edge.to,
     type: "labeled",
     label: edge.label,
+    data: { labelOffset: edge.labelOffset ?? null } satisfies LabeledEdgeData,
     selected: edge.id === selectedEdgeId,
     zIndex: 1000,
     markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },

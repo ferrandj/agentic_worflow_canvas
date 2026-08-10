@@ -50,4 +50,12 @@ export const TYPE_STYLES: Record<NodeType, TypeStyle> = {
     headerText: "text-rose-700 dark:text-rose-300",
     minimap: "#f43f5e",
   },
+  note: {
+    label: "Note",
+    icon: "📝",
+    card: "bg-yellow-100 border-yellow-300 text-yellow-950 dark:bg-yellow-300/10 dark:border-yellow-400/40 dark:text-yellow-100",
+    chip: "bg-yellow-200 text-yellow-900 dark:bg-yellow-400/20 dark:text-yellow-200",
+    headerText: "text-yellow-800 dark:text-yellow-300",
+    minimap: "#eab308",
+  },
 };

@@ -11,22 +11,26 @@ through a local REST API — see [AGENTS.md](AGENTS.md).
 
 ## Features
 
-- **Five block types**: Person (amber), Agent (indigo), Code (teal), Group (slate),
-  Platform (red, with a searchable tool-logo picker over Simple Icons).
+- **Six block types**: Person (amber), Agent (indigo), Code (teal), Group (slate),
+  Platform (red, with a searchable tool-logo picker over Simple Icons), and free
+  Note (yellow sticky note, edited directly in place, no workflow semantics).
 - **Groups that just work**: drop one block onto another and they become a group.
-  A group's size is always derived from its members — it hugs them automatically
-  and can't get out of sync. Remove a member with right-click → *Remove from
-  group*; dissolve a whole container with *Degroup*. Groups auto-dissolve when
-  down to one member. Platforms behave identically, plus one rule: **they can
-  never contain Person blocks** (agents and code only).
+  A group's frame always at least hugs its members automatically — it can never
+  clip one — but it can also be **freely resized** by dragging any of its 8
+  handles to add extra breathing room on any side. Remove a member with
+  right-click → *Remove from group*; dissolve a whole container with *Degroup*.
+  Groups auto-dissolve when down to one member. Platforms behave identically,
+  plus one rule: **they can never contain Person blocks** (agents and code only).
 - **Folder-based storage**: pick a folder; every canvas is a plain JSON file in
   it. The foldable left sidebar lists, creates, renames and deletes canvases.
   Autosaves as you edit.
 - **Mermaid both ways**: export any canvas as a `flowchart LR` (with containers
   as subgraphs and *real names* as node ids), and import that same dialect back —
-  positions are computed automatically with a layered auto-layout.
+  positions are computed automatically with a layered auto-layout. Notes are
+  canvas-only annotations and are left out of the exported diagram.
 - **Dark + light themes**, minimap, smooth pan/zoom, context menus, an inspector
-  panel for labels/notes/types/logos.
+  panel for labels/notes/types/logos. Edge labels default to sitting just above
+  the line (never on top of it) and can be dragged anywhere along the edge.
 
 ## Quick start
 

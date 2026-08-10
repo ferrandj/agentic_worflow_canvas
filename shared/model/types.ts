@@ -1,9 +1,11 @@
 import { z } from "zod";
 
-export const NODE_TYPES = ["person", "agent", "code", "group", "platform"] as const;
+export const NODE_TYPES = ["person", "agent", "code", "group", "platform", "note"] as const;
 export type NodeType = (typeof NODE_TYPES)[number];
 
 export const CONTAINER_TYPES: readonly NodeType[] = ["group", "platform"];
+
+const PadSchema = z.object({ l: z.number(), t: z.number(), r: z.number(), b: z.number() });
 
 export const CanvasNodeSchema = z.object({
   id: z.string().min(1),
@@ -14,6 +16,9 @@ export const CanvasNodeSchema = z.object({
   parent: z.string().nullable().default(null),
   x: z.number(),
   y: z.number(),
+  // Group/platform only: user-stretched padding beyond the auto-hugged
+  // minimum. Absent/null means "purely derived, no manual stretch yet".
+  pad: PadSchema.nullable().optional(),
 });
 export type CanvasNode = z.infer<typeof CanvasNodeSchema>;
 
@@ -22,6 +27,9 @@ export const CanvasEdgeSchema = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
   label: z.string().default(""),
+  // User-dragged offset from the default label position (flow-space px).
+  // Null/absent means "use the default off-line position".
+  labelOffset: z.object({ x: z.number(), y: z.number() }).nullable().optional(),
 });
 export type CanvasEdge = z.infer<typeof CanvasEdgeSchema>;
 

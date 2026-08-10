@@ -14,6 +14,7 @@ export function makeNode(partial: Partial<CanvasNode> & { type: NodeType }): Can
     parent: partial.parent ?? null,
     x: partial.x ?? 0,
     y: partial.y ?? 0,
+    pad: partial.pad ?? undefined,
   };
 }
 

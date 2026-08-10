@@ -8,7 +8,7 @@ import { TYPE_STYLES } from "../canvas/nodes/typeStyles";
 import type { Theme } from "../lib/theme";
 import { Modal } from "./Modal";
 
-const ADDABLE: NodeType[] = ["person", "agent", "code", "platform"];
+const ADDABLE: NodeType[] = ["person", "agent", "code", "platform", "note"];
 
 export function Toolbar({
   theme,

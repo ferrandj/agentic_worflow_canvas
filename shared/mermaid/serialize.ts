@@ -21,7 +21,11 @@ function leafLine(node: CanvasNode, id: string): string {
  * channel for their logo slug.
  */
 export function toMermaid(doc: CanvasDoc): string {
-  const ids = assignIds(doc.nodes);
+  // Notes are canvas-only annotations with no workflow semantics — they (and
+  // any edge touching them, though none are ever created) are left out of
+  // the Mermaid representation entirely.
+  const mermaidNodes = doc.nodes.filter((n) => n.type !== "note");
+  const ids = assignIds(mermaidNodes);
   const mid = (nodeId: string) => ids.get(nodeId)!;
   const lines: string[] = ["flowchart LR"];
 
@@ -30,7 +34,7 @@ export function toMermaid(doc: CanvasDoc): string {
     if (isContainerType(node.type)) {
       const label = escapeLabel(node.label) || mid(node.id);
       lines.push(`${pad}subgraph ${mid(node.id)}["${label}"]`);
-      for (const child of doc.nodes.filter((n) => n.parent === node.id)) {
+      for (const child of mermaidNodes.filter((n) => n.parent === node.id)) {
         emit(child, indent + 1);
       }
       lines.push(`${pad}end`);
@@ -39,7 +43,7 @@ export function toMermaid(doc: CanvasDoc): string {
     }
   };
 
-  for (const node of doc.nodes.filter((n) => n.parent === null)) {
+  for (const node of mermaidNodes.filter((n) => n.parent === null)) {
     emit(node, 1);
   }
 

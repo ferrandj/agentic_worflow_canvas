@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { CanvasDoc, CanvasNode, NodeType } from "@shared/model/types";
 import { uid, isContainerType } from "@shared/model/types";
-import { deriveRects } from "@shared/model/geometry";
+import { deriveRects, LEAF_W, LEAF_H, NOTE_W, NOTE_H } from "@shared/model/geometry";
 import {
   joinContainer,
   wrapInGroup,
@@ -35,6 +35,7 @@ interface CanvasStore {
 
   addEdge: (from: string, to: string) => void;
   updateEdgeLabel: (id: string, label: string) => void;
+  updateEdgeLabelOffset: (id: string, offset: { x: number; y: number }) => void;
   deleteEdges: (ids: string[]) => void;
 
   dropJoin: (draggedId: string, targetId: string) => boolean;
@@ -49,6 +50,7 @@ const TYPE_LABEL: Record<NodeType, string> = {
   code: "Code",
   group: "Group",
   platform: "Platform",
+  note: "Note",
 };
 
 export const useCanvasStore = create<CanvasStore>((set, get) => ({
@@ -75,6 +77,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   addNode: (type, x, y) => {
     const { doc } = get();
+    const spawnW = type === "note" ? NOTE_W : LEAF_W;
+    const spawnH = type === "note" ? NOTE_H : LEAF_H;
     // Nudge the spawn point to a free spot so stacked adds don't overlap.
     let px = x;
     let py = y;
@@ -82,7 +86,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       const rects = [...deriveRects(doc).values()];
       const collides = (cx: number, cy: number) =>
         rects.some(
-          (r) => cx < r.x + r.w + 16 && cx + 176 + 16 > r.x && cy < r.y + r.h + 16 && cy + 76 + 16 > r.y
+          (r) =>
+            cx < r.x + r.w + 16 && cx + spawnW + 16 > r.x && cy < r.y + r.h + 16 && cy + spawnH + 16 > r.y
         );
       for (let i = 0; i < 200 && collides(px, py); i++) {
         px += 48;
@@ -95,7 +100,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     const node: CanvasNode = {
       id: uid("n"),
       type,
-      label: `New ${TYPE_LABEL[type]}`,
+      // Notes are edited in place and start blank so the placeholder shows.
+      label: type === "note" ? "" : `New ${TYPE_LABEL[type]}`,
       note: "",
       logo: null,
       parent: null,
@@ -183,6 +189,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     get().mutateDoc((doc) => ({
       ...doc,
       edges: doc.edges.map((e) => (e.id === id ? { ...e, label } : e)),
+    }));
+  },
+
+  updateEdgeLabelOffset: (id, offset) => {
+    get().mutateDoc((doc) => ({
+      ...doc,
+      edges: doc.edges.map((e) => (e.id === id ? { ...e, labelOffset: offset } : e)),
     }));
   },
 

@@ -69,6 +69,30 @@ describe("toMermaid", () => {
     // nesting order: Team inside GitHub_Cloud
     expect(mmd.indexOf("subgraph Team")).toBeGreaterThan(mmd.indexOf("subgraph GitHub_Cloud"));
   });
+
+  it("excludes free-floating notes (and edges touching them) from the diagram", () => {
+    const doc = makeDoc(
+      [
+        makeNode({ id: "a", type: "agent", label: "Orchestrator" }),
+        makeNode({ id: "b", type: "code", label: "CI" }),
+        makeNode({ id: "n", type: "note", label: "remember to rotate secrets" }),
+        makeNode({ id: "g", type: "group", label: "Team" }),
+        makeNode({ id: "n2", type: "note", label: "nested note", parent: "g" }),
+      ],
+      [
+        { id: "e1", from: "a", to: "b", label: "" },
+        { id: "e2", from: "a", to: "n", label: "annotated by" },
+      ]
+    );
+    const mmd = toMermaid(doc);
+    expect(mmd).not.toContain("remember to rotate secrets");
+    expect(mmd).not.toContain("nested note");
+    expect(mmd).not.toContain("annotated by");
+    expect(mmd).toContain('Orchestrator["Orchestrator"]');
+    expect(mmd).toContain("Orchestrator --> CI");
+    // The group survives even though its only member was a note (mermaid view only).
+    expect(mmd).toContain('subgraph Team["Team"]');
+  });
 });
 
 describe("parseMermaid", () => {

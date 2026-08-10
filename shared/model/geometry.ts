@@ -10,9 +10,32 @@ export interface Rect {
 
 export const LEAF_W = 176;
 export const LEAF_H = 76;
+export const NOTE_W = 208;
+export const NOTE_H = 152;
 export const EMPTY_CONTAINER_W = 220;
 export const EMPTY_CONTAINER_H = 110;
 export const PAD = { l: 28, t: 44, r: 28, b: 28 } as const;
+export const MIN_PAD = 8;
+
+function leafSize(node: CanvasNode): { w: number; h: number } {
+  return node.type === "note" ? { w: NOTE_W, h: NOTE_H } : { w: LEAF_W, h: LEAF_H };
+}
+
+/**
+ * A container's padding is the user's stored pad (from dragging a resize
+ * handle — see issue #4), clamped to a sane minimum, falling back to the
+ * default when nothing has been stretched yet.
+ */
+export function effectivePad(node: CanvasNode): { l: number; t: number; r: number; b: number } {
+  const stored = node.pad;
+  if (!stored) return PAD;
+  return {
+    l: Math.max(MIN_PAD, stored.l),
+    t: Math.max(MIN_PAD, stored.t),
+    r: Math.max(MIN_PAD, stored.r),
+    b: Math.max(MIN_PAD, stored.b),
+  };
+}
 
 export function rectContainsPoint(r: Rect, x: number, y: number): boolean {
   return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
@@ -57,6 +80,7 @@ export function deriveRects(doc: CanvasDoc): Map<string, Rect> {
     let rect: Rect;
     if (isContainerType(node.type)) {
       const children = childrenOf(doc, node.id);
+      const pad = effectivePad(node);
       if (children.length === 0) {
         rect = { x: node.x, y: node.y, w: EMPTY_CONTAINER_W, h: EMPTY_CONTAINER_H };
       } else {
@@ -71,15 +95,19 @@ export function deriveRects(doc: CanvasDoc): Map<string, Rect> {
           maxX = Math.max(maxX, r.x + r.w);
           maxY = Math.max(maxY, r.y + r.h);
         }
+        // Padding is at least the auto-hug default but can be stretched
+        // larger by the user (resize handles) on any side independently —
+        // it can never shrink the frame below its members' bounding box.
         rect = {
-          x: minX - PAD.l,
-          y: minY - PAD.t,
-          w: maxX - minX + PAD.l + PAD.r,
-          h: maxY - minY + PAD.t + PAD.b,
+          x: minX - pad.l,
+          y: minY - pad.t,
+          w: maxX - minX + pad.l + pad.r,
+          h: maxY - minY + pad.t + pad.b,
         };
       }
     } else {
-      rect = { x: node.x, y: node.y, w: LEAF_W, h: LEAF_H };
+      const size = leafSize(node);
+      rect = { x: node.x, y: node.y, w: size.w, h: size.h };
     }
 
     rects.set(node.id, rect);
