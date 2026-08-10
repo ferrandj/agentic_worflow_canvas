@@ -231,3 +231,44 @@ test("failures are recorded in the Logs panel with full detail", async ({ page }
   await page.click('[data-testid="logs-clear"]');
   await expect(page.getByTestId("log-entry")).toHaveCount(0);
 });
+
+// The minimap should show every element (leaves, notes, and edges), not
+// only group/platform frames -- React Flow's built-in <MiniMap> only draws
+// node rectangles, and a large container frame visually buries the small
+// leaves nested inside it.
+test("minimap shows leaves, containers, and the edges between them", async ({ page }) => {
+  await page.goto("/");
+  await createCanvas(page, "minimap-test");
+
+  await page.click('[data-testid="add-agent"]');
+  await page.click('[data-testid="add-code"]');
+  await page.waitForTimeout(300);
+  await dragCenterTo(page, '[data-testid="node-New Agent"]', 500, 300);
+  await dragCenterTo(page, '[data-testid="node-New Code"]', 850, 300);
+
+  const agent = await page.locator('[data-testid="node-New Agent"]').boundingBox();
+  const code = await page.locator('[data-testid="node-New Code"]').boundingBox();
+  if (!agent || !code) throw new Error("missing boxes");
+  await page.mouse.move(agent.x + agent.width - 2, agent.y + agent.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(code.x + 2, code.y + code.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+
+  const minimap = page.getByTestId("canvas-minimap");
+  await expect(minimap).toBeVisible();
+  // Two leaf markers plus one edge line, at minimum.
+  expect(await minimap.locator("rect").count()).toBeGreaterThanOrEqual(2);
+  await expect(minimap.locator("line")).toHaveCount(1);
+  await expect(page.getByTestId("minimap-viewport")).toBeVisible();
+
+  // Clicking the minimap pans the main viewport.
+  const before = await page.locator('[data-testid="node-New Agent"]').boundingBox();
+  const mmBox = await minimap.boundingBox();
+  if (!before || !mmBox) throw new Error("missing box");
+  await page.mouse.click(mmBox.x + 5, mmBox.y + 5);
+  await page.waitForTimeout(400);
+  const after = await page.locator('[data-testid="node-New Agent"]').boundingBox();
+  if (!after) throw new Error("missing box");
+  expect(Math.abs(after.x - before.x) + Math.abs(after.y - before.y)).toBeGreaterThan(20);
+});

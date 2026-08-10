@@ -4,7 +4,6 @@ import {
   Background,
   BackgroundVariant,
   Controls,
-  MiniMap,
   useReactFlow,
   type Node as RFNode,
   type Edge as RFEdge,
@@ -21,10 +20,10 @@ import { toFlow } from "../state/flowAdapter";
 import { LeafNode } from "./nodes/LeafNode";
 import { ContainerNode } from "./nodes/ContainerNode";
 import { NoteNode } from "./nodes/NoteNode";
-import { TYPE_STYLES } from "./nodes/typeStyles";
 import { LabeledEdge } from "./edges/LabeledEdge";
 import { ContextMenu, ADD_TYPES, type MenuState } from "./ContextMenu";
 import { ResizeHandles } from "./ResizeHandles";
+import { CanvasMiniMap } from "./CanvasMiniMap";
 import type { Theme } from "../lib/theme";
 
 const nodeTypes = { leaf: LeafNode, container: ContainerNode, note: NoteNode };
@@ -221,11 +220,6 @@ export function FlowCanvas({ theme }: { theme: Theme }) {
     setMenu(null);
   }, []);
 
-  const minimapColor = useCallback((n: RFNode) => {
-    const data = n.data as { node?: CanvasNode };
-    return data.node ? TYPE_STYLES[data.node.type].minimap : "#94a3b8";
-  }, []);
-
   return (
     <div className="relative h-full w-full" data-testid="flow-canvas">
       <ReactFlow
@@ -255,13 +249,7 @@ export function FlowCanvas({ theme }: { theme: Theme }) {
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.4} className="!text-slate-300 dark:!text-slate-700" />
         <Controls className="!shadow-md" showInteractive={false} />
-        <MiniMap
-          nodeColor={minimapColor}
-          className="!rounded-xl !shadow-md"
-          maskColor={theme === "dark" ? "rgba(2,6,23,0.7)" : "rgba(241,245,249,0.7)"}
-          pannable
-          zoomable
-        />
+        {doc && <CanvasMiniMap doc={doc} rects={rects} />}
       </ReactFlow>
       {doc && <ResizeHandles doc={doc} selection={selection} rects={rects} />}
       <ContextMenu menu={menu} onClose={closeMenu} />
