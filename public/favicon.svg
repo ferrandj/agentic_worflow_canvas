@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="256" rx="112" fill="url(#sheen)"/>
+
+  <!-- connector: person -> agent -> platform, orthogonal like the app's routed arrows -->
+  <path d="M 150 168 H 210 V 256 H 302" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 210 256 V 344 H 302" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- person node -->
+  <circle cx="150" cy="168" r="46" fill="#fbbf24"/>
+  <!-- agent node -->
+  <rect x="256" y="210" width="92" height="92" rx="24" fill="#ffffff"/>
+  <!-- platform node -->
+  <rect x="290" y="298" width="112" height="92" rx="24" fill="#2dd4bf"/>
+
+  <circle cx="150" cy="168" r="46" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="6"/>
+</svg>

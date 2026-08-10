@@ -1,5 +1,7 @@
 # Agent Flow Canvas
 
+![Agent Flow Canvas](brand/hero.png)
+
 A fast, beautiful, local-first canvas for sketching **AI-agent workflows** — the
 kind of diagram that shows a human handing a ticket to an orchestrator, which fans
 out to subagents, which push into a CI platform, which comes back to a human
