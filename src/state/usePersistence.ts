@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { api, ApiError, type CanvasListing } from "../lib/api";
+import { notifyError, notifySuccess } from "../lib/logger";
 import { useCanvasStore } from "./store";
 
 const AUTOSAVE_MS = 700;
@@ -19,7 +19,7 @@ export function usePersistence() {
       setCanvases(await api.listCanvases());
     } catch (err) {
       if (err instanceof ApiError && err.code === "NoFolderConfigured") setCanvases([]);
-      else toast.error("Could not list canvases");
+      else notifyError("Could not list canvases", err);
     }
   }, []);
 
@@ -41,7 +41,7 @@ export function usePersistence() {
       }
     } catch (err) {
       useCanvasStore.getState().markSaved("error");
-      toast.error(err instanceof ApiError ? `Save failed: ${err.message}` : "Save failed");
+      notifyError(err instanceof ApiError ? `Save failed: ${err.message}` : "Save failed", err);
       throw err;
     }
   }, []);
@@ -60,7 +60,7 @@ export function usePersistence() {
         useCanvasStore.getState().setDoc(doc, name);
         localStorage.setItem(LAST_CANVAS_KEY, name);
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : `Could not open "${name}"`);
+        notifyError(err instanceof ApiError ? err.message : `Could not open "${name}"`, err);
       }
     },
     [flushSave]
@@ -72,10 +72,10 @@ export function usePersistence() {
         const { folder: confirmed } = await api.setFolder(path);
         setFolder(confirmed);
         await refreshList();
-        toast.success("Canvas folder set");
+        notifySuccess("Canvas folder set");
         return true;
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Could not set folder");
+        notifyError(err instanceof ApiError ? err.message : "Could not set folder", err);
         return false;
       }
     },
@@ -90,7 +90,7 @@ export function usePersistence() {
         await openCanvas(name);
         return true;
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Could not create canvas");
+        notifyError(err instanceof ApiError ? err.message : "Could not create canvas", err);
         return false;
       }
     },
@@ -109,7 +109,7 @@ export function usePersistence() {
         }
         await refreshList();
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Rename failed");
+        notifyError(err instanceof ApiError ? err.message : "Rename failed", err);
       }
     },
     [refreshList, flushSave]
@@ -123,7 +123,7 @@ export function usePersistence() {
         if (canvasName === name) useCanvasStore.getState().setDoc(null, null);
         await refreshList();
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Delete failed");
+        notifyError(err instanceof ApiError ? err.message : "Delete failed", err);
       }
     },
     [refreshList]
@@ -142,8 +142,8 @@ export function usePersistence() {
           const target = list.find((c) => c.name === last)?.name ?? list[0]?.name;
           if (target) await openCanvas(target);
         }
-      } catch {
-        toast.error("Could not reach the Agent Flow Canvas server");
+      } catch (err) {
+        notifyError("Could not reach the Agent Flow Canvas server", err);
       } finally {
         setLoadingFolder(false);
       }

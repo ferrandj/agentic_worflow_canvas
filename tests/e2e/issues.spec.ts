@@ -129,3 +129,105 @@ test("groups can be freely resized via handles, and still hug members afterward"
   if (!grown) throw new Error("missing box");
   expect(grown.x + grown.width).toBeGreaterThan(afterReload.x + afterReload.width + 100);
 });
+
+// GitHub issue #5: moving a member around inside its group/platform must
+// never change membership. Dropping it on top of a sibling used to wrap
+// both into a brand-new nested group, which could leave a 2-member
+// platform with a single child and auto-dissolve it into a plain group.
+test("dragging a member onto its sibling inside a platform does not dissolve the platform", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await createCanvas(page, "sibling-drag");
+
+  await page.click('[data-testid="add-platform"]');
+  await page.waitForTimeout(150);
+
+  // Rename each agent immediately (via the inspector, which is focused on
+  // the just-added node) so they have distinct, stable testids -- render
+  // order (and thus any nth-based locator) shifts as parents change.
+  await page.click('[data-testid="add-agent"]');
+  await page.fill('[data-testid="inspector-label"]', "Agent One");
+  await page.waitForTimeout(150);
+  await page.click('[data-testid="add-agent"]');
+  await page.fill('[data-testid="inspector-label"]', "Agent Two");
+  await page.waitForTimeout(150);
+
+  const agent1 = page.getByTestId("node-Agent One");
+  const agent2 = page.getByTestId("node-Agent Two");
+  const platform = page.getByTestId("container-New Platform");
+
+  const dragLocatorTo = async (locator: typeof agent1, tx: number, ty: number) => {
+    const b = await locator.boundingBox();
+    if (!b) throw new Error("missing box");
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(tx, ty, { steps: 14 });
+    await page.mouse.up();
+    await page.waitForTimeout(350);
+  };
+  const dragLocatorOnto = async (locator: typeof agent1, target: typeof agent1) => {
+    const t = await target.boundingBox();
+    if (!t) throw new Error("missing box");
+    await dragLocatorTo(locator, t.x + t.width / 2, t.y + t.height / 2);
+  };
+
+  await dragLocatorTo(agent1, 350, 300);
+  await dragLocatorTo(agent2, 350, 500);
+  await dragLocatorTo(platform, 700, 700);
+
+  await dragLocatorOnto(agent1, platform);
+  // Drop agent2 at the platform's padded corner rather than its center --
+  // once agent1 has joined, the frame hugs it tightly, so its center now
+  // overlaps agent1's own rect and would target the sibling instead.
+  const platformBox = await platform.boundingBox();
+  if (!platformBox) throw new Error("missing box");
+  await dragLocatorTo(agent2, platformBox.x + 14, platformBox.y + 14);
+  await expect(platform).toContainText("· 2");
+
+  // Now drag one agent directly onto its sibling, both already inside the platform.
+  await dragLocatorOnto(agent1, agent2);
+  await page.waitForTimeout(300);
+
+  // The platform must still exist (not replaced by a plain "Group"), and no
+  // stray nested group should have been created.
+  await expect(page.getByTestId("container-New Platform")).toHaveCount(1);
+  await expect(page.getByTestId("container-Group")).toHaveCount(0);
+  await expect(page.getByTestId("container-New Platform")).toContainText("· 2");
+});
+
+// GitHub issue #6: failures (e.g. "Save failed") must be diagnosable from
+// the GUI, not just a toast that vanishes. Reproduced here via a Mermaid
+// import parse error, which is a deterministic way to trigger a real
+// server-side failure with rich error detail.
+test("failures are recorded in the Logs panel with full detail", async ({ page }) => {
+  await page.goto("/");
+  await createCanvas(page, "logs-test");
+
+  await expect(page.getByTestId("logs-unread-badge")).toHaveCount(0);
+
+  await page.click('button:text-is("Import Mermaid")');
+  await page.locator('input[placeholder="my-canvas"]').fill("bad-import");
+  await page.locator('textarea[placeholder*="flowchart"]').fill("flowchart LR\nA -.-> B\n");
+  await page.click('button:text-is("Import")');
+  await page.waitForTimeout(400);
+  await page.click('button:text-is("✕")'); // close the still-open import modal
+
+  await expect(page.getByTestId("logs-unread-badge")).toHaveText("1");
+
+  await page.click('[data-testid="logs-toggle"]');
+  await expect(page.getByTestId("logs-panel")).toBeVisible();
+  // Opening the panel marks entries read.
+  await expect(page.getByTestId("logs-unread-badge")).toHaveCount(0);
+
+  const entry = page.getByTestId("log-entry").first();
+  await expect(entry).toContainText("Unsupported arrow");
+  await expect(entry).toHaveAttribute("data-log-level", "error");
+
+  await entry.locator("summary").click();
+  await expect(entry).toContainText('"code": "ParseError"');
+  await expect(entry).toContainText('"line": 2');
+
+  await page.click('[data-testid="logs-clear"]');
+  await expect(page.getByTestId("log-entry")).toHaveCount(0);
+});

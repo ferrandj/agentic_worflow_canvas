@@ -33,6 +33,9 @@ through a local REST API — see [AGENTS.md](AGENTS.md).
 - **Dark + light themes**, minimap, smooth pan/zoom, context menus, an inspector
   panel for labels/notes/types/logos. Edge labels default to sitting just above
   the line (never on top of it) and can be dragged anywhere along the edge.
+- **Logs panel**: every failure (a failed save, import, or folder change) is
+  recorded with full error detail, not just a toast that vanishes — open it
+  from the 📋 icon in the toolbar.
 
 ## Quick start
 

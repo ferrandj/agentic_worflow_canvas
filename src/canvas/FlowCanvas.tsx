@@ -128,6 +128,16 @@ export function FlowCanvas({ theme }: { theme: Theme }) {
         dragSnapshot.current = null;
         return;
       }
+      // Dropping onto a sibling that's already in the same group/platform:
+      // plain move, not a fresh wrap-in-group. Wrapping siblings creates a
+      // new nested group and reparents both into it, which can leave their
+      // original (non-null) parent with a single child -- cleanup's
+      // auto-dissolve then deletes it, silently downgrading a platform to a
+      // plain group and losing its identity (issue #5).
+      if (!isContainerType(target.type) && target.parent !== null && target.parent === dragged.parent) {
+        dragSnapshot.current = null;
+        return;
+      }
 
       const ok = store.dropJoin(node.id, target.id);
       if (!ok && dragSnapshot.current) {

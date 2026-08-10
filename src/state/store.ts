@@ -10,7 +10,7 @@ import {
   cleanup,
   GroupingError,
 } from "@shared/model/grouping";
-import { toast } from "sonner";
+import { notifyError } from "../lib/logger";
 
 export type SaveState = "clean" | "dirty" | "saving" | "error";
 
@@ -221,9 +221,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       return true;
     } catch (err) {
       if (err instanceof GroupingError && err.code === "PersonInPlatform") {
-        toast.error("Platforms can't contain Person blocks");
+        notifyError("Platforms can't contain Person blocks", err);
       } else if (err instanceof GroupingError && err.code === "Cycle") {
-        toast.error("Can't nest a group inside itself");
+        notifyError("Can't nest a group inside itself", err);
       }
       return false;
     }

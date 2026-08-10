@@ -4,9 +4,11 @@ import { toast } from "sonner";
 import type { NodeType } from "@shared/model/types";
 import { useCanvasStore } from "../state/store";
 import { api, ApiError } from "../lib/api";
+import { notifyError, notifySuccess, useLogStore } from "../lib/logger";
 import { TYPE_STYLES } from "../canvas/nodes/typeStyles";
 import type { Theme } from "../lib/theme";
 import { Modal } from "./Modal";
+import { LogsPanel } from "./LogsPanel";
 
 const ADDABLE: NodeType[] = ["person", "agent", "code", "platform", "note"];
 
@@ -29,6 +31,8 @@ export function Toolbar({
   const [importOpen, setImportOpen] = useState(false);
   const [importName, setImportName] = useState("");
   const [importText, setImportText] = useState("");
+  const [logsOpen, setLogsOpen] = useState(false);
+  const unreadLogs = useLogStore((s) => s.unread);
 
   const addAtCenter = (type: NodeType) => {
     const pos = screenToFlowPosition({
@@ -43,7 +47,7 @@ export function Toolbar({
     try {
       setExportText(await api.exportMermaid(canvasName));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Export failed");
+      notifyError(err instanceof ApiError ? err.message : "Export failed", err);
     }
   };
 
@@ -61,13 +65,13 @@ export function Toolbar({
   const doImport = async () => {
     try {
       await api.importMermaid(importName.trim(), importText);
-      toast.success(`Imported "${importName.trim()}"`);
+      notifySuccess(`Imported "${importName.trim()}"`);
       setImportOpen(false);
       setImportText("");
       onImported(importName.trim());
       setImportName("");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Import failed");
+      notifyError(err instanceof ApiError ? err.message : "Import failed", err);
     }
   };
 
@@ -129,6 +133,23 @@ export function Toolbar({
             className="rounded-xl px-2.5 py-1.5 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+
+          <button
+            data-testid="logs-toggle"
+            onClick={() => setLogsOpen((v) => !v)}
+            title="View logs"
+            className="relative rounded-xl px-2.5 py-1.5 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            📋
+            {unreadLogs > 0 && (
+              <span
+                data-testid="logs-unread-badge"
+                className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white"
+              >
+                {unreadLogs > 9 ? "9+" : unreadLogs}
+              </span>
+            )}
           </button>
 
           <div
@@ -193,6 +214,8 @@ export function Toolbar({
           </button>
         </div>
       </Modal>
+
+      <LogsPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
     </>
   );
 }
